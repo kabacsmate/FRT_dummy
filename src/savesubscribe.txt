@@ -1,0 +1,357 @@
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "sensor_msgs/CompressedImage.h"
+#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+
+sensor_msgs::CompressedImage leftImg;
+sensor_msgs::CompressedImage rightImg;
+bool isRightImg = false;
+bool isLeftImg = false;
+
+
+void imageLeftCallback(const sensor_msgs::CompressedImage& msg)
+{
+  ROS_INFO("Left image has arrived!");
+  leftImg = msg;
+  isLeftImg = true;
+}
+
+void imageRightCallback(const sensor_msgs::CompressedImage& msg){
+  rightImg = msg;
+  ROS_INFO("Right image has arrived! %s", rightImg.format.c_str());
+  isRightImg = true;
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "imgListener");
+  ros::NodeHandle n;
+
+  ros::Subscriber sub = n.subscribe("left/image_rect_color/compressed", 100, imageLeftCallback);
+  ros::Subscriber sub2 = n.subscribe("right/image_rect_color/compressed", 100, imageRightCallback);
+
+  ros::Publisher pub = n.advertise<sensor_msgs::Image>("myIMG", 10); //"myIMG/compressed"
+
+  while(ros::ok()){
+        if(isRightImg && isLeftImg)
+        {
+                cv_bridge::CvImageConstPtr cvptrLeft;
+                cv_bridge::CvImageConstPtr cvptrRight;
+                cvptrLeft = cv_bridge::toCvCopy(leftImg, sensor_msgs::image_encodings::BGR8);
+                cvptrRight = cv_bridge::toCvCopy(rightImg, sensor_msgs::image_encodings::BGR8);
+
+
+                cv::Mat resultImg;
+                cv::hconcat(cvptrLeft->image, cvptrRight->image, resultImg);
+
+                cv_bridge::CvImage resultImgCV;
+                resultImgCV.header = rightImg.header;
+                resultImgCV.encoding = sensor_msgs::image_encodings::BGR8;
+                resultImgCV.image = resultImg;
+
+                pub.publish(resultImgCV.toImageMsg());
+                isRightImg = false;
+                isLeftImg = false;
+
+
+
+        }
+        ros::spinOnce();
+  }
+  ros::spin();
+
+  return 0;
+}
+
+
+----------------------------------------------------------------------------------------------------------------------
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "sensor_msgs/CompressedImage.h"
+//#include <opencv2/imgproc/imgproc.hpp>
+//#include <cv_bridge/cv_bridge.h>
+//#include <image_transport/image_transport.h>
+#include "imageProcess.h"
+
+sensor_msgs::CompressedImage leftImg;
+sensor_msgs::CompressedImage rightImg;
+bool isRightImg = false;
+bool isLeftImg = false;
+
+
+void imageLeftCallback(const sensor_msgs::CompressedImage& msg)
+{
+  ROS_INFO("Left image has arrived!");
+  leftImg = msg;
+  isLeftImg = true;
+}
+
+void imageRightCallback(const sensor_msgs::CompressedImage& msg){
+  rightImg = msg;
+  ROS_INFO("Right image has arrived! %s", rightImg.format.c_str());
+  isRightImg = true;
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "imgListener");
+  ros::NodeHandle n;
+
+  ros::Subscriber sub = n.subscribe("left/image_rect_color/compressed", 100, imageLeftCallback);
+  ros::Subscriber sub2 = n.subscribe("right/image_rect_color/compressed", 100, imageRightCallback);
+
+  ros::Publisher pub = n.advertise<sensor_msgs::Image>("dummy_img_mate", 10);
+
+  while(ros::ok()){
+        if(isRightImg && isLeftImg)
+        {
+                cv_bridge::CvImageConstPtr cvptrLeft;
+                cv_bridge::CvImageConstPtr cvptrRight;
+                cv_bridge::CvImage resultImgCV;
+
+                cvptrRight = convertImage(rightImg);
+                cvptrLeft = convertImage(leftImg);
+
+                resultImgCV = vConcatImg(cvptrLeft, cvptrRight);
+                pub.publish(resultImgCV.toImageMsg());
+
+                isRightImg = false;
+                isLeftImg = false;
+
+
+
+        }
+        ros::spinOnce();
+  }
+  ros::spin();
+
+  return 0;
+}
+
+---------------------------------------------------------------------------------------------------------------------
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "sensor_msgs/CompressedImage.h"
+#include "imageProcess.h"
+
+sensor_msgs::CompressedImage leftImg;
+sensor_msgs::CompressedImage rightImg;
+bool isRightImg = false;
+bool isLeftImg = false;
+
+//check the "seq" param of the images to synchronize them
+void imageLeftCallback(const sensor_msgs::CompressedImage& msg)
+{
+  ROS_INFO("Left image has arrived!");
+  leftImg = msg;
+  isLeftImg = true;
+}
+
+void imageRightCallback(const sensor_msgs::CompressedImage& msg){
+  rightImg = msg;
+  ROS_INFO("Right image has arrived! %s", rightImg.format.c_str());
+  isRightImg = true;
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "imgListener");
+  ros::NodeHandle n;
+
+  ros::Subscriber sub = n.subscribe("left/image_rect_color/compressed", 100, imageLeftCallback);
+  ros::Subscriber sub2 = n.subscribe("right/image_rect_color/compressed", 100, imageRightCallback);
+
+  ros::Publisher pub = n.advertise<sensor_msgs::Image>("dummy_img_mate", 10);
+
+  while(ros::ok()){
+        if(isRightImg && isLeftImg)
+        {
+                cv_bridge::CvImageConstPtr cvptrLeft;
+                cv_bridge::CvImageConstPtr cvptrRight;
+                cv_bridge::CvImage resultImgCV;
+
+                cvptrRight = convertImage(rightImg);
+                cvptrLeft = convertImage(leftImg);
+
+                resultImgCV = vConcatImg(cvptrLeft, cvptrRight);
+                pub.publish(resultImgCV.toImageMsg());
+
+                isRightImg = false;
+                isLeftImg = false;
+
+
+
+        }
+        ros::spinOnce();
+  }
+  ros::spin();
+
+  return 0;
+}
+
+-----------------------------------------------------------------------------------------------------------------
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "sensor_msgs/CompressedImage.h"
+#include "imageProcess.h"
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+
+
+sensor_msgs::CompressedImage leftImg;
+sensor_msgs::CompressedImage rightImg;
+
+bool isRightImg = false;
+bool isLeftImg = false;
+
+void syncCallback(const sensor_msgs::CompressedImageConstPtr& leftImgSub, const sensor_msgs::CompressedImageConstPtr& rightImgSub){
+  leftImg = *leftImgSub;
+  rightImg = *rightImgSub;
+  isLeftImg = isRightImg = true;
+
+  ROS_INFO("The left and right images have arrived! %d %d ", leftImg.header.seq, rightImg.header.seq);
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "imgListener");
+  ros::NodeHandle n;
+  ros::Publisher pub = n.advertise<sensor_msgs::Image>("dummy_img_mate", 10);
+
+  message_filters::Subscriber<sensor_msgs::CompressedImage> leftImgSub(n, "zed_left_img_comp/compressed", 1); //"left/image_rect_color/compressed"
+  message_filters::Subscriber<sensor_msgs::CompressedImage> rightImgSub(n, "zed_right_img_comp/compressed", 1);//"right/image_rect_color/compressed"
+
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage, sensor_msgs::CompressedImage> MySyncPolicy;
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), leftImgSub, rightImgSub);
+  sync.registerCallback(boost::bind(&syncCallback, _1, _2));
+
+  while(ros::ok()){
+        if(isRightImg && isLeftImg)
+        {
+                cv_bridge::CvImageConstPtr cvptrLeft;
+                cv_bridge::CvImageConstPtr cvptrRight;
+                cv_bridge::CvImage resultImgCV;
+
+                cvptrRight = convertImage(rightImg);
+                cvptrLeft = convertImage(leftImg);
+
+                resultImgCV = hConcatImg(cvptrLeft, cvptrRight);
+                pub.publish(resultImgCV.toImageMsg());
+
+                isRightImg = isLeftImg = false;
+        }
+        ros::spinOnce();
+  }
+  ros::spin();
+
+  return 0;
+}
+
+--------------------------------------------------------------------------------------------------------------
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+#include "sensor_msgs/CompressedImage.h"
+#include "imageProcess.h"
+#include "can_msgs/Frame.h"
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <thread>
+
+sensor_msgs::CompressedImage leftImg;
+sensor_msgs::CompressedImage rightImg;
+
+bool isRightImg = false;
+bool isLeftImg = false;
+
+void syncCallback(const sensor_msgs::CompressedImageConstPtr& leftImgSub, const sensor_msgs::CompressedImageConstPtr& rightImgSub){
+  leftImg = *leftImgSub;
+  rightImg = *rightImgSub;
+  isLeftImg = isRightImg = true;
+
+  ROS_INFO("The left and right images have arrived! %d %d ", leftImg.header.seq, rightImg.header.seq);
+}
+//---------- Thread magic IDK --------------------------
+void canThread(){
+        ros::NodeHandle n;
+        ros::Publisher pubC = n.advertise<can_msgs::Frame>("sent_messages_thread", 10);
+        //ros::Rate ratePub(50);
+
+        can_msgs::Frame canFrame;
+        unsigned int frequencyRate = 1;
+        ros::Rate rate(frequencyRate);
+
+        canFrame.id = 0x414;
+        canFrame.is_rtr = canFrame.is_extended = canFrame.is_error = false;
+        canFrame.dlc = 8;
+        canFrame.data[0] = frequencyRate;
+        for (int i = 1 ; i < 8 ; i++){
+                canFrame.data[i] = 0;
+        }
+
+
+        while (ros::ok()){
+                pubC.publish(canFrame);
+                rate.sleep();
+        }
+}
+//------------------------------------------------------
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "imgListener");
+  ros::NodeHandle n;
+  ros::Publisher pub = n.advertise<sensor_msgs::Image>("dummy_img_mate", 10);
+  //ros::Publisher pubCan = n.advertise<can_msgs::Frame>("sent_messages", 10);
+
+  message_filters::Subscriber<sensor_msgs::CompressedImage> leftImgSub(n, "zed_left_img_comp/compressed", 1); //"left/image_rect_color/compressed"
+  message_filters::Subscriber<sensor_msgs::CompressedImage> rightImgSub(n, "zed_right_img_comp/compressed", 1);//"right/image_rect_color/compressed"
+
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage, sensor_msgs::CompressedImage> MySyncPolicy;
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), leftImgSub, rightImgSub);
+  sync.registerCallback(boost::bind(&syncCallback, _1, _2));
+
+  //
+  std::thread thread1(canThread);
+
+  while(ros::ok()){
+        if(isRightImg && isLeftImg)
+        {
+                cv_bridge::CvImageConstPtr cvptrLeft;
+                cv_bridge::CvImageConstPtr cvptrRight;
+                cv_bridge::CvImage resultImgCV;
+
+                cvptrRight = convertImage(rightImg);
+                cvptrLeft = convertImage(leftImg);
+
+                resultImgCV = hConcatImg(cvptrLeft, cvptrRight);
+                pub.publish(resultImgCV.toImageMsg());
+
+                isRightImg = isLeftImg = false;
+        }
+        ros::spinOnce();
+
+//      pubCan.publish(canFrame);
+//      rate.sleep();
+  }
+  ros::spin();
+
+  return 0;
+}
+
+----------------------------------------------------------------------------------------------------------------
+<launch>
+        <arg name = "leftImg" default = "/left/image_rect_color/compressed" />
+        <arg name = "rightImg" default = "/right/image_rect_color/compressed" />
+
+        <remap from="$(arg leftImg)" to="zed_left_img_comp/compressed" />
+        <remap from="$(arg rightImg)" to="zed_right_img_comp/compressed" />
+
+        <node pkg="dummy-mate" type="subscribe" name="dummy_mate_img" >
+        </node>
+        <node pkg="rosbag" type="play" name="rosplay" args="--clock /home/kabacsmate/catkin_ws/single_lap.bag">
+        </node>
+</launch>

@@ -1,0 +1,12 @@
+<launch>
+	<arg name = "leftImg" default = "/left/image_rect_color/compressed" />
+	<arg name = "rightImg" default = "/right/image_rect_color/compressed" />
+	<arg name = "bagPath" default = "/home/kabacsmate/catkin_ws/single_lap.bag" />
+
+	<remap from="$(arg leftImg)" to="zed_left_img_comp/compressed" />
+	<remap from="$(arg rightImg)" to="zed_right_img_comp/compressed" />
+
+	<node pkg="dummy-mate" type="subscribe" name="dummy_mate_img" >
+	</node>
+	<node pkg="rosbag" type="play" name="rosplay" args="--clock $(arg bagPath)" />
+</launch>
