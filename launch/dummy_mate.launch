@@ -6,7 +6,7 @@
 	<remap from="$(arg leftImg)" to="zed_left_img_comp/compressed" />
 	<remap from="$(arg rightImg)" to="zed_right_img_comp/compressed" />
 
-	<node pkg="dummy-mate" type="subscribe" name="dummy_mate_img" >
+	<node pkg="dummy-mate" type="subscribe" name="dummy_mate_img" output = "screen" >
 	</node>
-	<node pkg="rosbag" type="play" name="rosplay" args="--clock $(arg bagPath)" />
+	<node pkg="rosbag" type="play" name="rosplay" output = "screen" args="--clock $(arg bagPath)" />
 </launch>
