@@ -4,28 +4,23 @@
 The dummy_img_mate node can concatenate 2 images horizontally and publish CAN messages with different frequency.
 
 ## Project structure
-The file structure of the project, to help someone to find the specific file they are looking for.
-
-TODO
+The file structure of the project:
 
 ```
-.
-├── cfg
-│   ├── config.yaml
-├── doc                                 # Documentation of the package
-│   ├── documentation.pdf                    
-├── include                             # Public parts of the package (API)
-│   ├── header.h                        # Utility functions
+├── CMakeLists.txt
+├── doc
+│   ├── README_dummy_mate.md
+│   ├── dummy_mate.docx
+│   └── dummy_mate.docx:Zone.Identifier     # idk
+├── include
+│   └── imageProcess.h                      # Header for the defined functions
 ├── launch
-│   ├── launch.launch                   # Launch file to use in the AS pipeline
-│   └── simLaunch.launch                # Launch file to use with simulator
-├── src                                 # Private parts of the package
-│   ├── code.cpp                        # Main implementation file
-│   ├── rosIF.cpp                       # ROS intereface implementation
-├── CMakeLists.txt                      # Main CMake file
+│   └── dummy_mate.launch                   # Launch file for running the Node
+├── msg
 ├── package.xml
-└── README.md
-```
+└── src
+    ├── imageProcess.cpp                    # Contains the necessary functions
+    └── subscribe.cpp                       # The main program
 
 ## Dependencies
 Here you can assume the user has everything that is needed to run the AS (ROS, catkin etc.).
@@ -47,7 +42,7 @@ The package can be launched with the following command:
 
 roslaunch dummy-mate dummy_mate.launch
 
-It contains the single_lap.bag file, you may need to modify its path!
+It requires the single_lap.bag file, you may need to modify its path!
 
 ## Configuration
 
@@ -57,7 +52,7 @@ No config file.
 List all the topics the package is subscribed to or publishes with its type
 ### Subscribed to
 - [sensor_msgs/CompressedImage] /zed_right_img_comp/compressed : The right ZED camera image for the dummy project.
-- [sensor_msgs/CompressedImage] /[zed_left_img_comp/compressed] : The left ZED camera image for the dummy project.
+- [sensor_msgs/CompressedImage] /zed_left_img_comp/compressed : The left ZED camera image for the dummy project.
 ### Publishes
 - [sensor_msgs/Image] /dummy_img_mate : Contains the horizontally concatenated images.
 - [can_msgs/Frame] /sent_messages : This is a CAN frame what is periodically published and it’s frequency can be changed.
