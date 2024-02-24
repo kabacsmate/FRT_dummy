@@ -20,6 +20,9 @@ class ImageProcess{
 	ros::Publisher pubCan;
 
 	ros::Timer canTimer;
+	unsigned int imgFreq; //?
+	ros::Time prevTime;
+	ros::Time currTime;
 
 	message_filters::Subscriber<sensor_msgs::CompressedImage> leftImgSub;
   	message_filters::Subscriber<sensor_msgs::CompressedImage> rightImgSub;

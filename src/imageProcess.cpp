@@ -4,19 +4,16 @@ namespace dummy_ns{
 
 	ImageProcess::ImageProcess(ros::NodeHandle& nodeHandle) : nodeHandle_(nodeHandle) {
 		ROS_INFO("In the Constructor!");
+		imgFreq = 0;
+		currTime = ros::Time::now();
+		prevTime = ros::Time::now();
 		leftImgSub.subscribe(nodeHandle_, "zed_left_img_comp/compressed", 5);
 		rightImgSub.subscribe(nodeHandle_, "zed_right_img_comp/compressed", 5);
-		/*typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage,
-                                                sensor_msgs::CompressedImage> MySyncPolicy;
-		message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), leftImgSub, rightImgSub);*/ //try cut this 3 lines above into the .h file (private class attribute)
+		pubImg = nodeHandle_.advertise<sensor_msgs::Image>("/dummy_mate_img", 5);
+
 		syncPtr.reset(new sync(MySyncPolicy(10), leftImgSub, rightImgSub));
-		syncPtr->registerCallback(boost::bind(&dummy_ns::ImageProcess::syncCallback, this, _1, _2)); //try this with only 1 attribute and see what happens
-			// try to make a simply subscriber and watch if it works
-			// my best guess: the problem is, that the sync is exists only in the Constructor!!!
-		pubImg = nodeHandle_.advertise<sensor_msgs::Image>("dummy_img_mate", 10); //<-- here (this)
-		//this->canPub(); //this is new (its working, but looks kinda weird)
-			//UPDATE: the code below working only if the other callback is deactivated
-				// some commented lines are in the implementation of the canPub() function
+		syncPtr->registerCallback(boost::bind(&dummy_ns::ImageProcess::syncCallback, this, _1, _2));
+
 		canTimer = nodeHandle_.createTimer(ros::Duration(1/50), &dummy_ns::ImageProcess::canPub, this);
 		pubCan = nodeHandle_.advertise<can_msgs::Frame>("sent_messages", 10);
 
@@ -40,6 +37,7 @@ namespace dummy_ns{
 
         	cv_bridge::CvImage resultImgCV;
         	resultImgCV.header = img1->header;
+		resultImgCV.header.stamp = ros::Time::now();
         	resultImgCV.encoding = sensor_msgs::image_encodings::BGR8;
 		resultImgCV.image = resultImg;
 
@@ -47,11 +45,10 @@ namespace dummy_ns{
 	}
 
 	void ImageProcess::syncCallback(const sensor_msgs::CompressedImageConstPtr& leftImgSub, const sensor_msgs::CompressedImageConstPtr& rightImgSub){
-  		//ROS_INFO("In the Callback");
+
 		sensor_msgs::CompressedImage leftImg = *leftImgSub;
   		sensor_msgs::CompressedImage rightImg = *rightImgSub;
-  		//isLeftImg = isRightImg = true;
-
+		currTime = ros::Time::now();
 		cv_bridge::CvImageConstPtr cvptrLeft;
                 cv_bridge::CvImageConstPtr cvptrRight;
                 cv_bridge::CvImage resultImgCV;
@@ -62,28 +59,23 @@ namespace dummy_ns{
                 resultImgCV = hConcatImg(cvptrLeft, cvptrRight);
                 pubImg.publish(resultImgCV.toImageMsg());
 
-  		//ROS_INFO("The left and right images have arrived! %d %d ", leftImg.header.seq, rightImg.header.seq);
+		ros::Duration elapsedTime = currTime - prevTime;
+		double eTSecDouble = (double)elapsedTime.nsec / 1000000000.0;
+		imgFreq = (unsigned int)(1/eTSecDouble);
+		prevTime = currTime;
 	}
 
 	void ImageProcess::canPub(const ros::TimerEvent& event){
-        	
-        	unsigned int frequencyRate = 50; // The frequency of the messages
         	can_msgs::Frame canFrame;
-
         	canFrame.id = 0x414;
         	canFrame.is_rtr = canFrame.is_extended = canFrame.is_error = false;
         	canFrame.dlc = 8;
-        	canFrame.data[0] = frequencyRate; //This should be the frequency of the images publishing
+        	canFrame.data[0] = imgFreq;
         	for (int i = 1 ; i < 8 ; i++){
                 	canFrame.data[i] = 0;
         	}
 
-        	//ros::Rate rate(frequencyRate);
-
-        	//while (ros::ok()){
-                	pubCan.publish(canFrame);
-                /*	rate.sleep();
-        	}*/
+        	pubCan.publish(canFrame);
 	}
 
 }
