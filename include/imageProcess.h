@@ -15,12 +15,22 @@ namespace dummy_ns{
 class ImageProcess{
   private:
 	ros::NodeHandle& nodeHandle_;
+
 	ros::Publisher pubImg;
 	ros::Publisher pubCan;
+
+	ros::Timer canTimer;
+
 	message_filters::Subscriber<sensor_msgs::CompressedImage> leftImgSub;
   	message_filters::Subscriber<sensor_msgs::CompressedImage> rightImgSub;
-	std::string leftImgTopic;
-	std::string rightImgTopic;
+
+	/*std::string leftImgTopic;
+	std::string rightImgTopic;*/
+
+	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage,
+                                                sensor_msgs::CompressedImage> MySyncPolicy;
+        typedef message_filters::Synchronizer<MySyncPolicy> sync;
+	boost::shared_ptr<sync> syncPtr;
 
 	cv_bridge::CvImageConstPtr convertImage(sensor_msgs::CompressedImage& img, 
 		std::string image_encoding = sensor_msgs::image_encodings::BGR8);
@@ -35,7 +45,7 @@ class ImageProcess{
 	void syncCallback(const sensor_msgs::CompressedImageConstPtr& leftImgSub, 
 					const sensor_msgs::CompressedImageConstPtr& rightImgSub);
 
-	void canPub();
+	void canPub(const ros::TimerEvent& event);
 
 
 };

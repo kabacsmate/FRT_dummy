@@ -6,11 +6,20 @@ namespace dummy_ns{
 		ROS_INFO("In the Constructor!");
 		leftImgSub.subscribe(nodeHandle_, "zed_left_img_comp/compressed", 5);
 		rightImgSub.subscribe(nodeHandle_, "zed_right_img_comp/compressed", 5);
-		typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage,
+		/*typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage,
                                                 sensor_msgs::CompressedImage> MySyncPolicy;
-		message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), leftImgSub, rightImgSub);
-		sync.registerCallback(boost::bind(&dummy_ns::ImageProcess::syncCallback, this, _1, _2));
+		message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), leftImgSub, rightImgSub);*/ //try cut this 3 lines above into the .h file (private class attribute)
+		syncPtr.reset(new sync(MySyncPolicy(10), leftImgSub, rightImgSub));
+		syncPtr->registerCallback(boost::bind(&dummy_ns::ImageProcess::syncCallback, this, _1, _2)); //try this with only 1 attribute and see what happens
+			// try to make a simply subscriber and watch if it works
+			// my best guess: the problem is, that the sync is exists only in the Constructor!!!
 		pubImg = nodeHandle_.advertise<sensor_msgs::Image>("dummy_img_mate", 10); //<-- here (this)
+		//this->canPub(); //this is new (its working, but looks kinda weird)
+			//UPDATE: the code below working only if the other callback is deactivated
+				// some commented lines are in the implementation of the canPub() function
+		canTimer = nodeHandle_.createTimer(ros::Duration(1/50), &dummy_ns::ImageProcess::canPub, this);
+		pubCan = nodeHandle_.advertise<can_msgs::Frame>("sent_messages", 10);
+
 		ROS_INFO("Constructor finished!");
 	}
 	ImageProcess::~ImageProcess(){}
@@ -38,7 +47,7 @@ namespace dummy_ns{
 	}
 
 	void ImageProcess::syncCallback(const sensor_msgs::CompressedImageConstPtr& leftImgSub, const sensor_msgs::CompressedImageConstPtr& rightImgSub){
-  		ROS_INFO("In the Callback");
+  		//ROS_INFO("In the Callback");
 		sensor_msgs::CompressedImage leftImg = *leftImgSub;
   		sensor_msgs::CompressedImage rightImg = *rightImgSub;
   		//isLeftImg = isRightImg = true;
@@ -53,11 +62,11 @@ namespace dummy_ns{
                 resultImgCV = hConcatImg(cvptrLeft, cvptrRight);
                 pubImg.publish(resultImgCV.toImageMsg());
 
-  		ROS_INFO("The left and right images have arrived! %d %d ", leftImg.header.seq, rightImg.header.seq);
+  		//ROS_INFO("The left and right images have arrived! %d %d ", leftImg.header.seq, rightImg.header.seq);
 	}
 
-	void ImageProcess::canPub(){
-        	pubCan = nodeHandle_.advertise<can_msgs::Frame>("sent_messages", 10);
+	void ImageProcess::canPub(const ros::TimerEvent& event){
+        	
         	unsigned int frequencyRate = 50; // The frequency of the messages
         	can_msgs::Frame canFrame;
 
@@ -69,12 +78,12 @@ namespace dummy_ns{
                 	canFrame.data[i] = 0;
         	}
 
-        	ros::Rate rate(frequencyRate);
+        	//ros::Rate rate(frequencyRate);
 
-        	while (ros::ok()){
+        	//while (ros::ok()){
                 	pubCan.publish(canFrame);
-                	rate.sleep();
-        	}
+                /*	rate.sleep();
+        	}*/
 	}
 
 }
