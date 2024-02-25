@@ -7,7 +7,6 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
   dummy_ns::ImageProcess imgProc(n);
-  //imgProc.canPub();
 
   ros::spin();
 

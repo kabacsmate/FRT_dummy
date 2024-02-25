@@ -3,23 +3,24 @@
 namespace dummy_ns{
 
 	ImageProcess::ImageProcess(ros::NodeHandle& nodeHandle) : nodeHandle_(nodeHandle) {
-		ROS_INFO("In the Constructor!");
 		imgFreq = 0;
 		currTime = ros::Time::now();
 		prevTime = ros::Time::now();
+
+		// Synchronized subscriptions
 		leftImgSub.subscribe(nodeHandle_, "zed_left_img_comp/compressed", 5);
 		rightImgSub.subscribe(nodeHandle_, "zed_right_img_comp/compressed", 5);
-		pubImg = nodeHandle_.advertise<sensor_msgs::Image>("/dummy_mate_img", 5);
-
 		syncPtr.reset(new sync(MySyncPolicy(10), leftImgSub, rightImgSub));
 		syncPtr->registerCallback(boost::bind(&dummy_ns::ImageProcess::syncCallback, this, _1, _2));
 
+		// Publish CAN messages with the given frequency
 		canTimer = nodeHandle_.createTimer(ros::Duration(1/50), &dummy_ns::ImageProcess::canPub, this);
 		pubCan = nodeHandle_.advertise<can_msgs::Frame>("sent_messages", 10);
-
-		ROS_INFO("Constructor finished!");
+		pubImg = nodeHandle_.advertise<sensor_msgs::Image>("/dummy_mate_img", 5);
 	}
-	ImageProcess::~ImageProcess(){}
+	ImageProcess::~ImageProcess(){
+		canTimer.stop();
+	}
 
 	// Convert a sensor_msgs::CompressedImage type image to a cv_bridge::CvImageConstPtr image pointer
 	cv_bridge::CvImageConstPtr ImageProcess::convertImage(sensor_msgs::CompressedImage& img, std::string imageEncoding)
@@ -49,6 +50,7 @@ namespace dummy_ns{
 		sensor_msgs::CompressedImage leftImg = *leftImgSub;
   		sensor_msgs::CompressedImage rightImg = *rightImgSub;
 		currTime = ros::Time::now();
+
 		cv_bridge::CvImageConstPtr cvptrLeft;
                 cv_bridge::CvImageConstPtr cvptrRight;
                 cv_bridge::CvImage resultImgCV;
@@ -59,6 +61,7 @@ namespace dummy_ns{
                 resultImgCV = hConcatImg(cvptrLeft, cvptrRight);
                 pubImg.publish(resultImgCV.toImageMsg());
 
+		// Calculating the publishing frequency
 		ros::Duration elapsedTime = currTime - prevTime;
 		double eTSecDouble = (double)elapsedTime.nsec / 1000000000.0;
 		imgFreq = (unsigned int)(1/eTSecDouble);
